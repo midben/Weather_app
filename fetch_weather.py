@@ -7,7 +7,7 @@ def fetch_current_weather(city):
     params = {
         "latitude": city["lat"],
         "longitude": city["lon"],
-        "current_weather": "temperature_2m,precipitation_sum,windspeed_10m,weathercode",
+        "current": "temperature_2m,precipitation_sum,windspeed_10m,weathercode",
         "timezone": "Europe/London",
     }
     response = requests.get(API_URL, params=params, timeout=10)
