@@ -7,7 +7,7 @@ def fetch_current_weather(city):
     params = {
         "latitude": city["lat"],
         "longitude": city["lon"],
-        "current": "temperature_2m,precipitation_sum,windspeed_10m,weathercode",
+        "current": "temperature_2m,precipitation,windspeed_10m,weather_code",
         "timezone": "Europe/London",
     }
     response = requests.get(API_URL, params=params, timeout=10)
@@ -22,9 +22,9 @@ def clean_row(city, raw):
         "forecast_time": current["time"],
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "temperature_c": current["temperature_2m"],
-        "precipitation_mm": current["precipitation_sum"],
+        "precipitation_mm": current["precipitation"],
         "wind_speed_kmh": current["windspeed_10m"],
-        "weather_code": current["weathercode"]
+        "weather_code": current["weather_code"]
     }
 
 if __name__ == "__main__":
