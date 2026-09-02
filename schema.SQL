@@ -3,7 +3,6 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE TABLE forecasts (
     id SERIAL PRIMARY KEY,
     location_name TEXT NOT NULL,
-    geom GEOMETRY(Point, 4326) NOT NULL,
     forecast_time TIMESTAMP NOT NULL,
     fetched_at TIMESTAMP NOT NULL DEFAULT NOW(),
     temperature_c FLOAT,

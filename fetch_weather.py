@@ -19,8 +19,6 @@ def clean_row(city, raw):
 
     return {
         "location_name": city["name"],
-        "lat": city["lat"],
-        "lon": city["lon"],
         "forecast_time": current["time"],
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "temperature_c": current["temperature_2m"],

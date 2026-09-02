@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>UK POO WEATHER APP</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+        <style>
+            html, body, #map { height: 100%; margin: 0; }
+            .weather-icon {
+                font-size: 22px;
+                text-align: center;
+                text-shadow: 0 0 3px white, 0 0 3px white;
+            }
+            .legend {
+                background: white;
+                padding: 8px 12px;
+                border-radius: 4px;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                font-family: sans-serif;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+            .legend span {
+                display: inline-block;
+                width: 14px; height: 14px;
+                margin-right: 6px;
+                vertical-align: middle;
+                border-radius: 2px;               
+            }
+        </style>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script>
+            const map = L.map('map').setView([54.5, -3], 6); // Centered on the UK
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            const ICONS = {
+                "sun": "☀️",
+                "cloud": "☁️",
+                "cloud-sun": "⛅",
+                "fog": "🌫️",
+                "drizzle": "🌦️",
+                "rain": "🌧️",
+                "rain-heavy": "🌧️",
+                "snow-heavy": "❄️",
+                "snow": "🌨️",
+                "storm": "⛈️",
+            }
+
+            function temperatureColor(temp) {
+                const min = 0;
+                const max = 30;
+                const t = Math.max(0, Math.min(1, (temp - min) / (max - min)));
+                if (t < 0.5) {
+                    const ratio = t / 0.5;
+                    return interpolateColor([70, 120, 220], [255, 220, 80], ratio);
+                } else {
+                    const ratio = (t - 0.5) / 0.5;
+                    return interpolateColor([255, 220, 80], [220, 60, 50], ratio);
+                }
+            }
+
+            function interpolateColor(c1, c2, ratio) {
+                const r = Math.round(c1[0] + (c2[0] - c1[0]) * ratio);
+                const g = Math.round(c1[1] + (c2[1] - c1[1]) * ratio);
+                const b = Math.round(c1[2] + (c2[2] - c1[2]) * ratio);
+                return `rgb(${r},${g},${b})`;
+            }
+
+                fetch('data/city_weather.geojson')
+        .then(response => response.json())
+        .then(geojson => {
+            L.geoJSON(geojson, {
+                style: feature => ({
+                    fillColor: temperatureColor(feature.properties.temperature_c),
+                    fillOpacity: 0.65,
+                    color: '#333',
+                    weight: 1.5,
+                }),
+                onEachFeature: (feature, layer) => {
+                    const p = feature.properties;
+                    layer.bindPopup(
+                        `<strong>${p.name}</strong><br>` +
+                        `${p.temperature_c}°C, ${p.weather_description}<br>` +
+                        `Wind: ${p.wind_speed_kmh} km/h<br>` +
+                        `Rain: ${p.precipitation_mm} mm<br>` +
+                        `<small>Updated: ${new Date(p.fetched_at).toLocaleString()}</small>`
+                    );
+ 
+                    // Place a weather icon at the pre-computed centroid
+                    // (came from build_geojson.py, not recalculated here).
+                    const icon = L.divIcon({
+                        className: 'weather-icon',
+                        html: ICONS[p.weather_icon] || '☁️',
+                        iconSize: [24, 24],
+                    });
+                    L.marker([p.centroid_lat, p.centroid_lon], { icon }).addTo(map);
+                }
+            }).addTo(map);
+        })
+        .catch(err => {
+            console.error('Failed to load city_weather.geojson:', err);
+            alert('Could not load weather data — run build_geojson.py first.');
+        });
+ 
+    // Simple static legend for the temperature color scale.
+    const legend = L.control({ position: 'bottomright' });
+    legend.onAdd = function () {
+        const div = L.DomUtil.create('div', 'legend');
+        div.innerHTML =
+            '<strong>Temperature</strong><br>' +
+            '<span style="background:rgb(70,120,220)"></span>0°C<br>' +
+            '<span style="background:rgb(255,220,80)"></span>15°C<br>' +
+            '<span style="background:rgb(220,60,50)"></span>30°C+';
+        return div;
+    };
+    legend.addTo(map);
+</script>
+</body>
+</html>
+        </script>
+    </body>
+</html>
