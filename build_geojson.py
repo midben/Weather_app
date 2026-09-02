@@ -6,8 +6,14 @@ from weather_codes import get_weather_info
 LAD_BOUNDARY_PATH = "data/LAD_major_city_boundary_data.gpkg"
 LAD_NAME_FIELD = "LAD25NM"
 
+def load_lad_layer_wgs84():
+    layer = gpd.read_file(LAD_BOUNDARY_PATH)
+    if layer.crs is not None and layer.crs.to_espg() != 4326:
+        layer = layer.to_crs(epsg=4326)
+    return layer
+
 def build_city_geojson(latest_forecasts):
-    lad_layer = gpd.read_file(LAD_BOUNDARY_PATH)
+    lad_layer = load_lad_layer_wgs84()
     features=[]
     for _, row in lad_layer.iterrows():
         name = row[LAD_NAME_FIELD]
