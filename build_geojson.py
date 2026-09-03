@@ -1,10 +1,3 @@
-"""
-Builds the GeoJSON the dashboard reads. Iterates the pre-filtered city
-boundary GeoPackage directly (data/LAD_major_city_boundary_data.gpkg) —
-since this file already only contains the cities we want, no name-matching
-against a full national LAD dataset is needed anymore.
-"""
-
 import json
 import geopandas as gpd
 
@@ -15,13 +8,6 @@ LAD_NAME_FIELD = "LAD25NM"
 
 
 def load_lad_layer_wgs84():
-    """
-    Loads the boundary GeoPackage and reprojects to EPSG:4326 (WGS84
-    lat/lon degrees) if it isn't already. The source file is typically in
-    EPSG:27700 (British National Grid) — fine for area/distance math, but
-    both Open-Meteo and Leaflet/GeoJSON require plain lat/lon degrees, not
-    projected coordinates.
-    """
     layer = gpd.read_file(LAD_BOUNDARY_PATH)
     if layer.crs is not None and layer.crs.to_epsg() != 4326:
         layer = layer.to_crs(epsg=4326)
@@ -29,16 +15,6 @@ def load_lad_layer_wgs84():
 
 
 def build_city_geojson(latest_forecasts):
-    """
-    latest_forecasts: dict of {city_name: forecast_row}, where forecast_row
-    is the cleaned dict shape from fetch_weather.py's clean_row().
-
-    Returns a GeoJSON FeatureCollection: one polygon feature per city.
-    Each feature carries its centroid lat/lon as properties too — not for
-    the API call (that already happened before this function runs), but
-    so the dashboard can place a weather icon at a sensible point without
-    needing its own polygon-centroid library just to re-derive it.
-    """
     lad_layer = load_lad_layer_wgs84()
     features = []
     for _, row in lad_layer.iterrows():
@@ -72,25 +48,37 @@ def build_city_geojson(latest_forecasts):
     return {"type": "FeatureCollection", "features": features}
 
 
+def fetch_latest_forecasts_from_db():
+    from db import get_connection
+ 
+    conn = get_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT location_name, forecast_time, fetched_at,
+                       temperature_c, precipitation_mm, wind_speed_kmh, weather_code
+                FROM latest_forecasts
+            """)
+            columns = [desc[0] for desc in cur.description]
+            rows = cur.fetchall()
+    finally:
+        conn.close()
+ 
+    return {
+        row[0]: dict(zip(columns, row))
+        for row in rows
+    }
+ 
+ 
 if __name__ == "__main__":
-    from fetch_weather import fetch_current_weather, clean_row
-
-    lad_layer = load_lad_layer_wgs84()
-
-    latest = {}
-    for _, row in lad_layer.iterrows():
-        name = row[LAD_NAME_FIELD]
-        # Use each polygon's centroid as the point to query Open-Meteo for —
-        # a forecast API needs a single lat/lon, not a whole shape.
-        centroid = row.geometry.centroid
-        city = {"name": name, "lat": centroid.y, "lon": centroid.x}
-
-        raw = fetch_current_weather(city)
-        latest[name] = clean_row(city, raw)
-
-    geojson = build_city_geojson(latest)
-
-    with open("data/city_weather.geojson", "w") as f:
-        json.dump(geojson, f, indent=2)
-
-    print(f"Wrote {len(geojson['features'])} city features to data/city_weather.geojson")
+    latest = fetch_latest_forecasts_from_db()
+ 
+    if not latest:
+        print("No forecast data in the database yet — run insert_forecasts.py first.")
+    else:
+        geojson = build_city_geojson(latest)
+ 
+        with open("data/city_weather.geojson", "w") as f:
+            json.dump(geojson, f, indent=2, default=str)  # default=str handles datetime objects
+ 
+        print(f"Wrote {len(geojson['features'])} city features to data/city_weather.geojson")
