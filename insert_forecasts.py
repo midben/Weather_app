@@ -29,12 +29,11 @@ def run():
 
             try:
                 raw_data = fetch_current_weather(city)
-                cleaned_data = clean_row(raw_data, city)
+                cleaned_data = clean_row(city, raw_data)
                 insert_row(conn, cleaned_data)
                 print(f"Inserted forecast for {name}")
             except Exception as e:
                 print(f"Error processing {name}: {e}")
-                continue
     finally:
         conn.close()
 

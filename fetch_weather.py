@@ -12,6 +12,7 @@ def fetch_current_weather(city):
     }
     response = requests.get(API_URL, params=params, timeout=10)
     response.raise_for_status()
+    print(response.json())
     return response.json()
 
 def clean_row(city, raw):
