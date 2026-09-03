@@ -17,7 +17,7 @@ CREATE INDEX idx_forecasts_location_time ON forecasts (location_name, fetched_at
  
 CREATE VIEW latest_forecasts AS
 SELECT DISTINCT ON (location_name)
-    location_name, geom, forecast_time, fetched_at,
+    location_name, forecast_time, fetched_at,
     temperature_c, precipitation_mm, wind_speed_kmh, weather_code
 FROM forecasts
 ORDER BY location_name, fetched_at DESC;
