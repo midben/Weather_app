@@ -25,8 +25,8 @@ ORDER BY location_name, fetched_at DESC;
 CREATE TABLE hourly_outlook (
     id               SERIAL PRIMARY KEY,
     location_name    TEXT NOT NULL,
-    valid_time       TIMESTAMP NOT NULL,   -- the future hour this prediction is FOR
-    generated_at     TIMESTAMP NOT NULL DEFAULT NOW(),  -- when this prediction was fetched
+    valid_time       TIMESTAMP NOT NULL,  
+    generated_at     TIMESTAMP NOT NULL DEFAULT NOW(),  
     temperature_c    FLOAT,
     precipitation_mm FLOAT,
     wind_speed_kmh   FLOAT,
