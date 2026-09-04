@@ -1,6 +1,6 @@
 import json
 
-from build_geojson import load_lad_layer_wgs84, LAD_NAME_FIELD
+from boundaries import load_lad_layer_wgs84, LAD_NAME_FIELD
 from weather_codes import get_weather_info
 from db import get_connection
 

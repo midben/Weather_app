@@ -1,5 +1,5 @@
 from fetch_weather import fetch_current_weather, clean_row, fetch_hourly_forecast, clean_hourly_rows
-from build_geojson import load_lad_layer_wgs84, LAD_NAME_FIELD
+from boundaries import load_lad_layer_wgs84, LAD_NAME_FIELD
 from db import get_connection
 
 def insert_row(conn, row):
@@ -33,6 +33,17 @@ def replace_hourly_outlook(conn, location_name, hourly_rows):
         """, hourly_rows)
     conn.commit()
 
+def rebuild_dashboard_data():
+    import json
+    from build_outlook_geojson import build_outlook_geojson, fetch_hourly_outlook_from_db
+ 
+    outlook = fetch_hourly_outlook_from_db()
+    if outlook:
+        outlook_geojson = build_outlook_geojson(outlook)
+        with open("data/city_outlook.geojson", "w") as f:
+            json.dump(outlook_geojson, f, indent=2, default=str)
+        print(f"Rebuilt data/city_outlook.geojson ({len(outlook_geojson['features'])} cities)")
+
 
 
 def run():
@@ -62,6 +73,8 @@ def run():
                 print(f"FAILED outlook fetch/insert for {name}: {e}")
     finally:
         conn.close()
+
+    rebuild_dashboard_data()
 
 if __name__ == "__main__":
     run()
