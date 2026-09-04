@@ -1,5 +1,3 @@
-CREATE EXTENSION IF NOT EXISTS postgis;
-
 CREATE TABLE forecasts (
     id SERIAL PRIMARY KEY,
     location_name TEXT NOT NULL,
@@ -10,8 +8,6 @@ CREATE TABLE forecasts (
     wind_speed_kmh FLOAT,
     weather_code INT
 );
-
-CREATE INDEX idx_forecasts_geom ON forecasts USING GIST (geom);
 
 CREATE INDEX idx_forecasts_location_time ON forecasts (location_name, fetched_at DESC);
  
@@ -32,3 +28,5 @@ CREATE TABLE hourly_outlook (
     wind_speed_kmh   FLOAT,
     weather_code     INT
 );
+
+CREATE INDEX idx_outlook_location_time ON hourly_outlook (location_name, valid_time);
