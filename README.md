@@ -74,18 +74,7 @@ This fetches current weather + a 24-hour outlook for every city in the
 boundary file and writes both to the database. Check for `Inserted
 current: ...` and `Refreshed outlook: ...` lines with no `FAILED` entries.
  
-### 5. Build the dashboard's data file
- 
-**Required before the dashboard will open successfully** — it never
-generates its own data, it only reads a file this script produces:
-```bash
-python build_outlook_geojson.py
-```
-Produces `data/city_outlook.geojson`. Skipping this step, or running the
-dashboard before `insert_forecasts.py` has ever populated `hourly_outlook`,
-is the single most common reason the dashboard fails to load.
- 
-### 6. Serve and view the dashboard
+### 5. Serve and view the dashboard
 ```bash
 python -m http.server 8000
 ```
