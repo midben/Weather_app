@@ -27,6 +27,27 @@
                 vertical-align: middle;
                 border-radius: 2px;               
             }
+            .time-control {
+                background: white;
+                padding: 10px 14px;
+                border-radius: 4px;
+                box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+                font-family: sans-serif;
+                font-size: 13px;
+                width: 220px;
+            }
+            .time-control label {
+                display: block;
+                margin-bottom: 6px;
+            }
+            .time-control input[type="range"] {
+                width: 100%;
+            }
+            .time-control #time-label {
+                font-weight: bold;
+                margin-top: 4px;
+                display: block;
+            }
         </style>
     </head>
     <body>
@@ -71,43 +92,88 @@
                 return `rgb(${r},${g},${b})`;
             }
 
-                fetch('data/city_weather.geojson')
+    fetch('data/city_outlook.geojson')
         .then(response => response.json())
         .then(geojson => {
-            L.geoJSON(geojson, {
-                style: feature => ({
-                    fillColor: temperatureColor(feature.properties.temperature_c),
+            let currentHourIndex = 0;
+            let geoJsonLayer;
+            let markers = [];
+ 
+            function clearMarkers() {
+                markers.forEach(m => map.removeLayer(m));
+                markers = [];
+            }
+ 
+            function styleForHour(feature, hourIndex) {
+                const hour = feature.properties.hourly[hourIndex];
+                return {
+                    fillColor: temperatureColor(hour.temperature_c),
                     fillOpacity: 0.65,
                     color: '#333',
                     weight: 1.5,
-                }),
-                onEachFeature: (feature, layer) => {
-                    const p = feature.properties;
-                    layer.bindPopup(
-                        `<strong>${p.name}</strong><br>` +
-                        `${p.temperature_c}°C, ${p.weather_description}<br>` +
-                        `Wind: ${p.wind_speed_kmh} km/h<br>` +
-                        `Rain: ${p.precipitation_mm} mm<br>` +
-                        `<small>Updated: ${new Date(p.fetched_at).toLocaleString()}</small>`
-                    );
+                };
+            }
  
-                    // Place a weather icon at the pre-computed centroid
-                    // (came from build_geojson.py, not recalculated here).
-                    const icon = L.divIcon({
-                        className: 'weather-icon',
-                        html: ICONS[p.weather_icon] || '☁️',
-                        iconSize: [24, 24],
-                    });
-                    L.marker([p.centroid_lat, p.centroid_lon], { icon }).addTo(map);
+            function renderHour(hourIndex) {
+                clearMarkers();
+ 
+                if (geoJsonLayer) map.removeLayer(geoJsonLayer);
+ 
+                geoJsonLayer = L.geoJSON(geojson, {
+                    style: feature => styleForHour(feature, hourIndex),
+                    onEachFeature: (feature, layer) => {
+                        const p = feature.properties;
+                        const hour = p.hourly[hourIndex];
+                        layer.bindPopup(
+                            `<strong>${p.name}</strong><br>` +
+                            `${hour.temperature_c}°C, ${hour.weather_description}<br>` +
+                            `Wind: ${hour.wind_speed_kmh} km/h<br>` +
+                            `Rain: ${hour.precipitation_mm} mm<br>` +
+                            `<small>For: ${new Date(hour.valid_time).toLocaleString()}</small>`
+                        );
+ 
+                        const icon = L.divIcon({
+                            className: 'weather-icon',
+                            html: ICONS[hour.weather_icon] || '☁️',
+                            iconSize: [24, 24],
+                        });
+                        const marker = L.marker([p.centroid_lat, p.centroid_lon], { icon }).addTo(map);
+                        markers.push(marker);
+                    }
+                }).addTo(map);
+ 
+                const firstCity = geojson.features[0];
+                if (firstCity) {
+                    const label = new Date(firstCity.properties.hourly[hourIndex].valid_time)
+                        .toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+                    document.getElementById('time-label').textContent = label;
                 }
-            }).addTo(map);
+            }
+ 
+            renderHour(0);
+ 
+            document.getElementById('hour-slider').addEventListener('input', (e) => {
+                currentHourIndex = parseInt(e.target.value, 10);
+                renderHour(currentHourIndex);
+            });
         })
         .catch(err => {
-            console.error('Failed to load city_weather.geojson:', err);
-            alert('Could not load weather data — run build_geojson.py first.');
+            console.error('Failed to load city_outlook.geojson:', err);
+            alert('Could not load weather data — run build_outlook_geojson.py first.');
         });
  
-    // Simple static legend for the temperature color scale.
+    const timeControl = L.control({ position: 'topright' });
+    timeControl.onAdd = function () {
+        const div = L.DomUtil.create('div', 'time-control');
+        div.innerHTML =
+            '<label for="hour-slider">Hours ahead</label>' +
+            '<input type="range" id="hour-slider" min="0" max="23" value="0" step="1">' +
+            '<span id="time-label">Now</span>';
+        L.DomEvent.disableClickPropagation(div);
+        return div;
+    };
+    timeControl.addTo(map);
+ 
     const legend = L.control({ position: 'bottomright' });
     legend.onAdd = function () {
         const div = L.DomUtil.create('div', 'legend');
